@@ -1,0 +1,33 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+env/
+*.egg-info/
+
+# Secrets and env
+.env
+.env.local
+.env.* 
+
+# Agent data and DB
+agent/data/*
+!agent/data/.gitkeep
+*.db
+*.sqlite
+*.sqlite3
+agent_data.db
+
+# Generated images and uploads
+images/
+agent/generated_images/
+*.jpg
+*.jpeg
+*.png
+
+# MacOS
+.DS_Store
+
+# Logs
+*.log

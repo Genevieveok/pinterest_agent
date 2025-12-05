@@ -1,0 +1,12 @@
+daily_pins:
+  repins: 5
+  new_pins: 2
+
+site: "${SITE_URL}"
+
+filters:
+  min_saves: 5
+  max_age_days: 365
+
+use_ai_generation: true
+image_host_branch: "${IMAGE_HOST_BRANCH}"

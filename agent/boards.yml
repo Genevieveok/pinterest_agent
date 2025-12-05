@@ -1,0 +1,48 @@
+boards:
+  k_drama:
+    id: "${BOARD_K_DRAMA}"
+    keywords:
+      - "kdrama"
+      - "kdrama quotes"
+      - "lee min ho new"
+      - "kdrama scenes"
+      - "romance kdrama"
+  c_drama:
+    id: "${BOARD_C_DRAMA}"
+    keywords:
+      - "cdrama"
+      - "cdrama quotes"
+      - "new cdrama"
+      - "romance cdrama"
+      - "cdrama scenes"
+  entertainment:
+    id: "${BOARD_ENTERTAINMENT}"
+    keywords:
+      - "modern movies"
+      - "marvel movies"
+      - "anime"
+      - "naruto"
+      - "inuyash"
+      - "comedy tv shows"
+      - "sci fi tv shows"
+  lifestyle:
+    id: "${BOARD_LIFESTYLE}"
+    keywords:
+      - "inspirational quotes"
+      - "self care"
+      - "skin care"
+  food:
+    id: "${BOARD_FOOD}"
+    keywords:
+      - "healthy nigerian food"
+      - "healthy recipes"
+      - "calorie deficit meals"
+      - "comfort meals"
+      - "healthy asian meals"
+  travel:
+    id: "${BOARD_TRAVEL}"
+    keywords:
+      - "travel inspo"
+      - "itineraries for popular destinations"
+      - "nice cafes travel"
+      - "best spots in detstinations"
