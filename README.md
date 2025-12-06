@@ -1,7 +1,9 @@
 # Pinterest Agent — Complete (Hybrid HF + Local Fallback)
 
 This repo automates Pinterest activity:
-- Repin 5 pins/day (niche-focused)
+- Repin 5 pins/day (niche-focused) (WIP)
+  - Pin sourcing is currently restricted to content within the authorized user's account (e.g., searching the user's own boards).
+  - The next priority is resolving the API limitation that prevents global pin discovery, specifically by finding the correct method or endpoint to retrieve random, trending, or explore-feed pins.
 - Create 2 new SEO-friendly aesthetic pins/day (1 HF-generated, 1 blog-image overlay)
 - Hosts generated images in `gh-pages` branch via GitHub Contents API (requires GITHUB_TOKEN)
 - Runs on GitHub Actions (daily cron)
@@ -10,10 +12,10 @@ This repo automates Pinterest activity:
 Setup (summary)
 1. Fork/push this repo to GitHub.
 2. In GitHub repo Settings → Secrets → Actions add:
-   - `PINTEREST_TOKEN` (required)
+   - `PINTEREST_APP_ID` (required)
    - `GITHUB_TOKEN` (provided by Actions; ensure repo write access)
    - `HF_TOKEN` (optional — set for HF image generation)
-   - `SITE_URL` (e.g. https://thinkingeve.com)
+   - `SITE_URL`
    - `BOARD_K_DRAMA`, `BOARD_C_DRAMA`, `BOARD_ENTERTAINMENT`, `BOARD_LIFESTYLE`, `BOARD_FOOD`, `BOARD_TRAVEL`
    - `IMAGE_HOST_BRANCH` (optional, default: gh-pages)
 3. Confirm `agent/boards.yml` contains placeholders (it does by default).

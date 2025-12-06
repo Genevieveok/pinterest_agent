@@ -7,9 +7,15 @@ on:
 jobs:
   run:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
-      - name: Checkout
+      - name: Checkout Repository (with Commit Permissions)
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref }} 
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
@@ -20,10 +26,15 @@ jobs:
           pip install -r requirements.txt
       - name: Run agent
         env:
-          PINTEREST_TOKEN: ${{ secrets.PINTEREST_TOKEN }}
+          PINTEREST_APP_ID: ${{ secrets.PINTEREST_APP_ID }}
+          PINTEREST_APP_SECRET: ${{ secrets.PINTEREST_APP_SECRET }}
+
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
+          SITE_URL: ${{ secrets.SITE_URL }}
+          IMAGE_HOST_BRANCH: ${{ secrets.IMAGE_HOST_BRANCH }}
+
           SITE_URL: ${{ secrets.SITE_URL }}
           BOARD_K_DRAMA: ${{ secrets.BOARD_K_DRAMA }}
           BOARD_C_DRAMA: ${{ secrets.BOARD_C_DRAMA }}
@@ -31,12 +42,12 @@ jobs:
           BOARD_LIFESTYLE: ${{ secrets.BOARD_LIFESTYLE }}
           BOARD_FOOD: ${{ secrets.BOARD_FOOD }}
           BOARD_TRAVEL: ${{ secrets.BOARD_TRAVEL }}
-          IMAGE_HOST_BRANCH: ${{ secrets.IMAGE_HOST_BRANCH }}
         run: |
           python -m agent.main
-      - name: Commit generated images and DB
-        uses: stefanzweifel/git-auto-commit-action@v4
+      - name: Commit Updated Files (Token and DB)
+        uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: "chore(agent): update generated images and DB"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ccommit_message: "chore(agent): automated update (token refreshed, DB updated)"
+          files: access_token.json agent_data.db
+          commit_user_name: 'Pinterest Agent Bot'
+          commit_user_email: 'github-actions[bot]@users.noreply.github.com'

@@ -3,6 +3,7 @@ boards:
     id: "${BOARD_K_DRAMA}"
     keywords:
       - "kdrama"
+      - "K-Drama"
       - "kdrama quotes"
       - "lee min ho new"
       - "kdrama scenes"
@@ -22,7 +23,7 @@ boards:
       - "marvel movies"
       - "anime"
       - "naruto"
-      - "inuyash"
+      - "inuyasha"
       - "comedy tv shows"
       - "sci fi tv shows"
   lifestyle:
