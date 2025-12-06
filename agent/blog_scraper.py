@@ -21,7 +21,6 @@ def fetch_sitemap_posts(url_to_fetch, limit=100):
     Fetches URLs from a sitemap, handles sitemap indexes recursively,
     and filters for likely post URLs.
     """
-
     # Check if this is the initial call or a recursive call
     if "sitemap.xml" in url_to_fetch or "sitemap_index" in url_to_fetch:
         sitemap_url = url_to_fetch
@@ -30,7 +29,6 @@ def fetch_sitemap_posts(url_to_fetch, limit=100):
         sitemap_url = urljoin(url_to_fetch, "/sitemap.xml")
 
     logger.debug("Attempting to fetch sitemap from: %s", sitemap_url)
-
     try:
         r = requests.get(sitemap_url, headers=DEFAULT_HEADERS, timeout=20)
         r.raise_for_status()  # Raises HTTPError for 4xx or 5xx status codes
@@ -39,12 +37,10 @@ def fetch_sitemap_posts(url_to_fetch, limit=100):
         return []
 
     # Parse the content as XML
-    # Assumes 'lxml' is installed, which is necessary for 'xml' parsing
     soup = BeautifulSoup(r.content, "xml")
 
     # Check for SITEMAP INDEX tags (if present, it links to other sitemaps)
     sitemap_links = [s.loc.text for s in soup.find_all("sitemap")]
-
     if sitemap_links:
         logger.info(
             "Found sitemap index at %s. Recursively fetching %s sub-sitemaps.",
@@ -62,7 +58,6 @@ def fetch_sitemap_posts(url_to_fetch, limit=100):
     # Check for URL tags (standard sitemap)
     # The 'loc' tag contains the actual URL
     urls = [loc.text for loc in soup.find_all("loc")]
-
     if not urls:
         logger.debug("No <loc> tags found in sitemap: %s", sitemap_url)
         return []

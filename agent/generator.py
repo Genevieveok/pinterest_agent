@@ -25,8 +25,7 @@ def build_aesthetic_image(
 ):
     if not outfile:
         outfile = f"/tmp/pin_{int(time.time())}.jpg"
-
-    # --- Hugging Face Generation (Primary) ---
+    # Hugging Face Generation (Primary)
     if hf_token:
         try:
             prompt = f"Aesthetic vertical photo for a Pinterest pin, 1000x1500, photo background, subject: {title_text}, soft lighting, high detail, muted color palette"
@@ -35,10 +34,8 @@ def build_aesthetic_image(
                 f.write(img_bytes)
             return outfile
         except Exception as e:
-            # Note: This print is now visible since the exception is inside main.py's safe_run_with_retries
             print("HF generation failed, falling back to local generator", e)
-
-    # --- Local Fallback Generation ---
+    # Local Fallback Generation
     try:
         # Load background image
         if background_url:
@@ -51,9 +48,7 @@ def build_aesthetic_image(
     except Exception:
         # Fallback to plain background if background URL fails
         img = Image.new("RGBA", (1000, 1500), (240, 240, 240, 255))
-
     draw = ImageDraw.Draw(img)
-
     # Load Font
     try:
         # Only attempt to load truetype if a path is defined AND the file exists
@@ -63,12 +58,11 @@ def build_aesthetic_image(
             font = ImageFont.load_default()
     except Exception:
         font = ImageFont.load_default()
-
     text = (title_text or "")[:200]
     words = text.split()
     lines = []
     line = ""
-    # Simple word wrapping logic
+    # Word wrapping logic
     for w in words:
         if len(line) + len(w) + 1 > 28:
             lines.append(line.strip())
@@ -77,34 +71,27 @@ def build_aesthetic_image(
             line += w + " "
     if line:
         lines.append(line.strip())
-
-    # FIX 1 (Part 1): Calculate line height using the modern getbbox() method
+    # Calculate line height using the modern getbbox() method
     # Use 'A' for a reliable height estimate
     # Note: getbbox returns (left, top, right, bottom)
     line_h_bbox = font.getbbox("A")
     line_h = line_h_bbox[3] - line_h_bbox[1] + 10  # Height + padding
-
     box_h = line_h * len(lines) + 40
     y = img.height - box_h - 60
-
     # Draw transparent background box
     draw.rectangle([40, y - 10, img.width - 40, y + box_h], fill=(0, 0, 0, 150))
     text_y = y + 20
-
     for ln in lines:
-        # FIX 1 (Part 2): Calculate text width/height using draw.textbbox()
+        # Calculate text width/height using draw.textbbox()
         # getbbox() is called on the font object, textbbox() is called on the Draw object
         # textbbox returns (left, top, right, bottom) relative to the top-left of the text
-
         # Calculate bounding box of the text
         bbox = draw.textbbox((0, 0), ln, font=font)
         w = bbox[2] - bbox[0]  # width
         # h = bbox[3] - bbox[1] # height
-
         x = (img.width - w) / 2
         draw.text((x, text_y), ln, font=font, fill=(255, 255, 255, 255))
         text_y += line_h
-
     rgb = img.convert("RGB")
     rgb.save(outfile, quality=85)
     return outfile
