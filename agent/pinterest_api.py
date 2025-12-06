@@ -61,18 +61,24 @@ def save_pin_to_board(
     if pin_id:
         payload["existing_pin_id"] = pin_id
     else:
-        payload["title"] = title or ""
-        payload["alt_text"] = title or ""
-        payload["description"] = description or ""
-        payload["link"] = link or ""
+        if not image_url or not board_id:
+            raise ValueError("Pin creation requires image_url and board_id.")
+
         payload["media_source"] = {"source_type": "image_url", "url": image_url}
+
+        payload["title"] = title or "TE title for board"
+        payload["alt_text"] = title or "TE image for board"
+        payload["description"] = description or "TE description for board"
+        payload["link"] = link or ""
 
     headers = {
         "Authorization": f"Bearer {PINTEREST_ACCESS_TOKEN.access_token}",
         "Content-Type": "application/json",
     }
 
+    print(f"PAYLOAD: {payload}")
     print(url, headers)
+
     r = requests.post(url, json=payload, headers=headers, timeout=30)
     r.raise_for_status()
     return r.json()
