@@ -31,3 +31,6 @@ agent/generated_images/
 
 # Logs
 *.log
+
+# Access token
+access_token.json

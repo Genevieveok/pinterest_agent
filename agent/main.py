@@ -172,9 +172,10 @@ def main():
         # Exit if we can't get a token, as the rest of the agent won't work.
         return
 
-    repinned = run_repins()
+    # repinned = run_repins()
     created = run_new_pins()
-    logger.info("Done. Repinned: %s New pins: %s", len(repinned), len(created))
+    # logger.info("Done. Repinned: %s New pins: %s", len(repinned), len(created))
+    logger.info("Done. New pins: %s", len(created))
 
 
 if __name__ == "__main__":
