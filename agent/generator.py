@@ -1,68 +1,101 @@
 import os, time, base64, requests
 from PIL import Image, ImageDraw, ImageFont
 from io import BytesIO
+from requests.exceptions import HTTPError
+import replicate
 
-FONT_PATH = None
+
 DEFAULT_HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
-    "Accept-Language": "en-US,en;q=0.5",
-    "Accept-Encoding": "gzip, deflate, br",
+    "User-Agent": "Mozilla/5.0",
 }
 
 
-def hf_text_to_image(prompt, hf_token, model="stabilityai/stable-diffusion-2"):
-    api = f"https://api-inference.huggingface.co/models/{model}"
-    headers = {"Authorization": f"Bearer {hf_token}"}
-    payload = {"inputs": prompt}
-    r = requests.post(api, headers=headers, json=payload, timeout=60)
-    r.raise_for_status()
-    return r.content
+def generate_image_replicate(prompt, outfile, model_name="prunaai/p-image"):
+    """
+    Generate an image using Replicate.
+    Uses replicate.run() (recommended method) instead of model.predict().
+    Raises RuntimeError on failure.
+    """
+    try:
+        # Check available models
+        available_models = [m.id for m in replicate.models.list()]
+        if model_name not in available_models:
+            raise RuntimeError(
+                f"[Replicate ERROR] Model '{model_name}' not available for this token.\n"
+                f"Available models: {available_models}"
+            )
+
+        print(f"[Replicate] Using model '{model_name}' to generate image...")
+        output = replicate.run(model_name, input={"prompt": prompt})
+
+        if isinstance(output, list) and len(output) > 0:
+            image_url = output[0]
+        elif isinstance(output, str):
+            image_url = output
+        else:
+            raise RuntimeError(
+                f"[Replicate ERROR] Unexpected output from model: {output}"
+            )
+
+        r = requests.get(image_url, timeout=60)
+        r.raise_for_status()
+
+        with open(outfile, "wb") as f:
+            f.write(r.content)
+
+        print(f"[Replicate] Image saved to {outfile}")
+        return outfile
+
+    except Exception as e:
+        raise RuntimeError(f"[Replicate ERROR] Generation failed: {e}") from e
 
 
 def build_aesthetic_image(
-    background_url=None, title_text="", outfile=None, hf_token=None
+    background_url=None, title_text="", outfile=None, replicate_model="prunaai/p-image"
 ):
+    """
+    Build aesthetic Pinterest-style image.
+    Primary: Replicate AI
+    Fallback: Local overlay generator
+    """
     if not outfile:
         outfile = f"/tmp/pin_{int(time.time())}.jpg"
-    # Hugging Face Generation (Primary)
-    if hf_token:
+
+    replicate_token = os.getenv("REPLICATE_API_TOKEN")
+
+    # PRIMARY: Replicate AI
+    if replicate_token:
+        prompt = (
+            f"Aesthetic vertical Pinterest pin, 1000x1500, soft lighting, "
+            f"clean layout, well composed, subject: {title_text}"
+        )
         try:
-            prompt = f"Aesthetic vertical photo for a Pinterest pin, 1000x1500, photo background, subject: {title_text}, soft lighting, high detail, muted color palette"
-            img_bytes = hf_text_to_image(prompt, hf_token)
-            with open(outfile, "wb") as f:
-                f.write(img_bytes)
-            return outfile
-        except Exception as e:
-            print("HF generation failed, falling back to local generator", e)
-    # Local Fallback Generation
+            return generate_image_replicate(prompt, outfile, model_name=replicate_model)
+        except RuntimeError as e:
+            print(e)
+            print(f"[Fallback] Using local image generator for '{title_text}'")
+
+    # FALLBACK: Local image builder
     try:
-        # Load background image
         if background_url:
             r = requests.get(background_url, headers=DEFAULT_HEADERS, timeout=20)
             img = Image.open(BytesIO(r.content)).convert("RGBA")
             img = img.resize((1000, 1500))
         else:
-            # Create plain background
             img = Image.new("RGBA", (1000, 1500), (240, 240, 240, 255))
-    except Exception:
-        # Fallback to plain background if background URL fails
+    except Exception as e:
+        print(f"[Local Generator] Failed to load background image: {e}")
         img = Image.new("RGBA", (1000, 1500), (240, 240, 240, 255))
+
     draw = ImageDraw.Draw(img)
-    # Load Font
     try:
-        # Only attempt to load truetype if a path is defined AND the file exists
-        if FONT_PATH and os.path.exists(FONT_PATH):
-            font = ImageFont.truetype(FONT_PATH, 60)
-        else:
-            font = ImageFont.load_default()
+        font = ImageFont.load_default()
     except Exception:
         font = ImageFont.load_default()
+
     text = (title_text or "")[:200]
     words = text.split()
-    lines = []
-    line = ""
-    # Word wrapping logic
+    lines, line = [], ""
     for w in words:
         if len(line) + len(w) + 1 > 28:
             lines.append(line.strip())
@@ -71,29 +104,23 @@ def build_aesthetic_image(
             line += w + " "
     if line:
         lines.append(line.strip())
-    # Calculate line height using the modern getbbox() method
-    # Use 'A' for a reliable height estimate
-    # Note: getbbox returns (left, top, right, bottom)
-    line_h_bbox = font.getbbox("A")
-    line_h = line_h_bbox[3] - line_h_bbox[1] + 10  # Height + padding
+
+    line_h = font.getbbox("A")[3] + 10
     box_h = line_h * len(lines) + 40
     y = img.height - box_h - 60
-    # Draw transparent background box
     draw.rectangle([40, y - 10, img.width - 40, y + box_h], fill=(0, 0, 0, 150))
+
     text_y = y + 20
     for ln in lines:
-        # Calculate text width/height using draw.textbbox()
-        # getbbox() is called on the font object, textbbox() is called on the Draw object
-        # textbbox returns (left, top, right, bottom) relative to the top-left of the text
-        # Calculate bounding box of the text
         bbox = draw.textbbox((0, 0), ln, font=font)
-        w = bbox[2] - bbox[0]  # width
-        # h = bbox[3] - bbox[1] # height
+        w = bbox[2] - bbox[0]
         x = (img.width - w) / 2
         draw.text((x, text_y), ln, font=font, fill=(255, 255, 255, 255))
         text_y += line_h
+
     rgb = img.convert("RGB")
     rgb.save(outfile, quality=85)
+    print(f"[Local Generator] Image saved to {outfile}")
     return outfile
 
 

@@ -101,12 +101,14 @@ def extract_post_meta(post_url):
     keywords = []
     if title:
         keywords = [w.strip().lower() for w in title.split() if len(w) > 2][:15]
-    og_img = soup.find("meta", property="og:image")
-    image = (
-        og_img.get("content")
-        if og_img and getattr(og_img, "has_attr", "") and og_img.has_attr("content")
-        else None
+
+    og_img = soup.find("meta", attrs={"property": "og:image"}) or soup.find(
+        "meta", attrs={"name": "og:image"}
     )
+    image = None
+    if og_img:
+        image = og_img.get("content") or og_img.get("value")
+
     return {
         "title": title,
         "description": description,

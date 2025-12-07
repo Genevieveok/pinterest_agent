@@ -15,7 +15,7 @@ logger.setLevel(logging.DEBUG)
 
 BASE = os.path.dirname(__file__)
 BOARDS = load_yaml_with_env(os.path.join(BASE, "boards.yml"))["boards"]
-HF_TOKEN = os.getenv("HF_TOKEN")
+REPLICATE_TOKEN = os.getenv("REPLICATE_API_TOKEN")
 GITHUB_REPO = os.getenv("GITHUB_REPOSITORY")
 IMAGE_HOST_BRANCH = (
     os.getenv("IMAGE_HOST_BRANCH") or CONFIG.get("image_host_branch") or "gh-pages"
@@ -89,17 +89,16 @@ def run_new_pins():
         if not matched_board_key:
             matched_board_key = random.choice(list(BOARDS.keys()))
         matched_board = BOARDS[matched_board_key]
-        title_for_image = meta.get("title") or "From the blog"
-        use_ai = CONFIG.get("use_ai_generation", True) and bool(HF_TOKEN)
+        title_for_image = meta.get("title") or "ThinkingEve.com"
+        use_ai = CONFIG.get("use_ai_generation", True) and bool(REPLICATE_TOKEN)
         local_img = None
         if use_ai:
             local_img = safe_run_with_retries(
                 build_aesthetic_image,
                 attempts=2,
                 delay=5,
-                background_url=meta.get("image"),
+                background_url=meta.get("url"),
                 title_text=title_for_image,
-                hf_token=HF_TOKEN,
             )
         if not local_img:
             local_img = safe_run_with_retries(
@@ -108,7 +107,6 @@ def run_new_pins():
                 delay=1,
                 background_url=meta.get("image"),
                 title_text=title_for_image,
-                hf_token=None,
             )
         if not local_img:
             continue
