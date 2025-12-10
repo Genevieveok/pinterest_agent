@@ -8,6 +8,8 @@ import replicate
 DEFAULT_HEADERS = {
     "User-Agent": "Mozilla/5.0",
 }
+TARGET_WIDTH = 1000
+TARGET_HEIGHT = 1500  # 2:3 Pinterest Aspect Ratio
 
 
 def generate_image_replicate(prompt, outfile, model_name="prunaai/p-image"):
@@ -50,6 +52,32 @@ def generate_image_replicate(prompt, outfile, model_name="prunaai/p-image"):
         raise RuntimeError(f"[Replicate ERROR] Generation failed: {e}") from e
 
 
+def get_wrapped_text(text: str, font, max_width: int):
+    """Dynamically wraps text based on font and maximum pixel width."""
+    draw = ImageDraw.Draw(Image.new("RGB", (1, 1)))
+
+    words = text.split()
+    lines, current_line = [], ""
+
+    for word in words:
+        # Check width of line + new word
+        test_line = current_line + word + " "
+        # Use getbbox for modern Pillow versions
+        bbox = draw.textbbox((0, 0), test_line, font=font)
+        test_width = bbox[2] - bbox[0]
+
+        if test_width <= max_width:
+            current_line = test_line
+        else:
+            lines.append(current_line.strip())
+            current_line = word + " "
+
+    if current_line:
+        lines.append(current_line.strip())
+
+    return lines
+
+
 def build_aesthetic_image(
     background_url=None, title_text="", outfile=None, replicate_model="prunaai/p-image"
 ):
@@ -80,7 +108,23 @@ def build_aesthetic_image(
         if background_url:
             r = requests.get(background_url, headers=DEFAULT_HEADERS, timeout=20)
             img = Image.open(BytesIO(r.content)).convert("RGBA")
-            img = img.resize((1000, 1500))
+            original_w, original_h = img.size
+
+            scale_w = TARGET_WIDTH / original_w
+            scale_h = TARGET_HEIGHT / original_h
+
+            scale = min(scale_w, scale_h)
+
+            new_w = int(original_w * scale)
+            new_h = int(original_h * scale)
+
+            scaled_img = img.resize((new_w, new_h), Image.Resampling.LANCZOS)
+            img = Image.new("RGBA", (TARGET_WIDTH, TARGET_HEIGHT), (0, 0, 0, 255))
+
+            x_offset = (TARGET_WIDTH - new_w) // 2
+            y_offset = (TARGET_HEIGHT - new_h) // 2
+
+            img.paste(scaled_img, (x_offset, y_offset))
         else:
             img = Image.new("RGBA", (1000, 1500), (240, 240, 240, 255))
     except Exception as e:
@@ -88,35 +132,61 @@ def build_aesthetic_image(
         img = Image.new("RGBA", (1000, 1500), (240, 240, 240, 255))
 
     draw = ImageDraw.Draw(img)
+
+    # DYNAMIC FONT SIZING (Using a placeholder font for size)
+    FONT_SIZE = 80
     try:
-        font = ImageFont.load_default()
+        font = ImageFont.load_default(size=FONT_SIZE)
     except Exception:
         font = ImageFont.load_default()
+        FONT_SIZE = 16
 
-    text = (title_text or "")[:200]
-    words = text.split()
-    lines, line = [], ""
-    for w in words:
-        if len(line) + len(w) + 1 > 28:
-            lines.append(line.strip())
-            line = w + " "
-        else:
-            line += w + " "
-    if line:
-        lines.append(line.strip())
+    MAX_TEXT_WIDTH = int(img.width * 0.85)
+    text_to_use = title_text or ""
 
-    line_h = font.getbbox("A")[3] + 10
-    box_h = line_h * len(lines) + 40
-    y = img.height - box_h - 60
-    draw.rectangle([40, y - 10, img.width - 40, y + box_h], fill=(0, 0, 0, 150))
+    lines = get_wrapped_text(text_to_use, font, MAX_TEXT_WIDTH)
 
-    text_y = y + 20
+    # CALCULATE BOX AND POSITION
+    # Get the bounding box of the entire text block to determine the required box height
+    total_text_height = 0
+    max_line_width = 0
     for ln in lines:
         bbox = draw.textbbox((0, 0), ln, font=font)
+        line_w = bbox[2] - bbox[0]
+        line_h = bbox[3] - bbox[1]
+        total_text_height += line_h
+        if line_w > max_line_width:
+            max_line_width = line_w
+
+    LINE_PADDING = 20  # Vertical space between lines
+    BOX_PADDING = 40  # Padding around the text box
+
+    total_text_height += LINE_PADDING * (len(lines) - 1)
+    box_h = total_text_height + BOX_PADDING * 2
+
+    # Position the box in the bottom quarter of the image
+    y = img.height - box_h - 150
+
+    # Draw transparent black rectangle
+    draw.rectangle(
+        [40, y, img.width - 40, y + box_h],  # Left padding  # Right padding
+        fill=(0, 0, 0, 180),  # Darker overlay
+    )
+
+    # DRAW TEXT
+    text_y = y + BOX_PADDING
+    for ln in lines:
+        # Recalculate bbox for alignment
+        bbox = draw.textbbox((0, 0), ln, font=font)
         w = bbox[2] - bbox[0]
+
+        # Center the text horizontally
         x = (img.width - w) / 2
+
         draw.text((x, text_y), ln, font=font, fill=(255, 255, 255, 255))
-        text_y += line_h
+
+        # Move down for the next line
+        text_y += (bbox[3] - bbox[1]) + LINE_PADDING  # Use actual line height + padding
 
     rgb = img.convert("RGB")
     rgb.save(outfile, quality=85)

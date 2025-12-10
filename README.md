@@ -1,4 +1,5 @@
 # Pinterest Agent — Complete (Hybrid Replicate' + Local Fallback) (WIP)
+This tool provides an automated way to manage Pinterest content. Design facilitates pinning new images directly from a blog and repinning existing, high-performing content from other boards. Continuous activity helps drive engagement on Pinterest and, consequently, increases referral traffic to the blog.
 
 This repo automates Pinterest activity:
 - Repin 5 pins/day (niche-focused) (WIP)

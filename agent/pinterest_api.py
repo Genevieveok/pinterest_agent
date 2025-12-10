@@ -1,6 +1,5 @@
-import os
 import requests
-from .globals import PINTEREST_ACCESS_TOKEN, API_CONFIG
+from .globals import PINTEREST_ACCESS_TOKEN
 
 API_BASE = "https://api.pinterest.com/v5"
 

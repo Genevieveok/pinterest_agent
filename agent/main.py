@@ -1,14 +1,18 @@
 #!/usr/bin/env python3
-import os, yaml, random, time, logging
+import os, random, time, logging
 import threading
 from .config_loader import load_yaml_with_env
 from .db import init_db, get_conn
 from .repin_engine import repin_for_board
 from .blog_scraper import fetch_sitemap_posts, extract_post_meta
 from .generator import build_aesthetic_image, upload_image_to_github
-from .utils import human_sleep_between_pins, short_random_sleep
+from .utils import (
+    human_sleep_between_pins,
+    short_random_sleep,
+    clean_site_url_for_display,
+)
 
-from .globals import CONFIG, API_CONFIG, PINTEREST_ACCESS_TOKEN, REQUIRED_SCOPES
+from .globals import CONFIG, PINTEREST_ACCESS_TOKEN, REQUIRED_SCOPES
 
 logging.basicConfig(format="%(asctime)s %(levelname)s %(message)s")
 logger = logging.getLogger("pinterest-agent")
@@ -22,6 +26,7 @@ IMAGE_HOST_BRANCH = (
     os.getenv("IMAGE_HOST_BRANCH") or CONFIG.get("image_host_branch") or "gh-pages"
 )
 SITE_URL = os.getenv("SITE_URL") or CONFIG.get("site")
+CLEAN_SITE_URL = clean_site_url_for_display(SITE_URL)
 repinned_results = []
 created_results = []
 
@@ -92,7 +97,11 @@ def run_new_pins():
         if not matched_board_key:
             matched_board_key = random.choice(list(BOARDS.keys()))
         matched_board = BOARDS[matched_board_key]
-        title_for_image = meta.get("title") or "ThinkingEve.com"
+
+        title_for_image = meta.get("title")
+        if not title_for_image:
+            title_for_image = f"More on {CLEAN_SITE_URL}"
+
         use_ai = CONFIG.get("use_ai_generation", True) and bool(REPLICATE_TOKEN)
         local_img = None
         if use_ai:
@@ -186,16 +195,16 @@ def main():
 
     # Create thread objects
     repin_thread = threading.Thread(target=run_repins_threaded)
-    # new_pin_thread = threading.Thread(target=run_new_pins_threaded)
+    new_pin_thread = threading.Thread(target=run_new_pins_threaded)
 
     # Start threads
     repin_thread.start()
-    # new_pin_thread.start()
+    new_pin_thread.start()
 
     # Wait for both threads to complete
     # This ensures main() doesn't exit until both repinning and new pin creation are done.
     repin_thread.join()
-    # new_pin_thread.join()
+    new_pin_thread.join()
 
     # Use the results captured globally
     logger.info(

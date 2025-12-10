@@ -22,3 +22,22 @@ def short_random_sleep(min_s=2, max_s=6):
     t = random.uniform(min_s, max_s)
     time.sleep(t)
     return t
+
+
+def clean_site_url_for_display(url: str) -> str:
+    """Removes 'http(s)://' and 'www.' and capitalizes the first letter."""
+    if url.startswith("http://"):
+        url = url[len("http://") :]
+    elif url.startswith("https://"):
+        url = url[len("https://") :]
+
+    if url.startswith("www."):
+        url = url[len("www.") :]
+
+    if url:
+        url = url[0].upper() + url[1:]
+
+    if url.endswith("/"):
+        url = url[:-1]
+
+    return url
