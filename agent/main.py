@@ -186,16 +186,16 @@ def main():
 
     # Create thread objects
     repin_thread = threading.Thread(target=run_repins_threaded)
-    new_pin_thread = threading.Thread(target=run_new_pins_threaded)
+    # new_pin_thread = threading.Thread(target=run_new_pins_threaded)
 
     # Start threads
     repin_thread.start()
-    new_pin_thread.start()
+    # new_pin_thread.start()
 
     # Wait for both threads to complete
     # This ensures main() doesn't exit until both repinning and new pin creation are done.
     repin_thread.join()
-    new_pin_thread.join()
+    # new_pin_thread.join()
 
     # Use the results captured globally
     logger.info(

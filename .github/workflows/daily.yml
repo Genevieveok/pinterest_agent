@@ -47,6 +47,6 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           ccommit_message: "chore(agent): automated update (token refreshed, DB updated)"
-          files: access_token.json agent_data.db
+          files: agent_data.db
           commit_user_name: 'Pinterest Agent Bot'
           commit_user_email: 'github-actions[bot]@users.noreply.github.com'
