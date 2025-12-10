@@ -1,7 +1,12 @@
+import os
 import requests
-from .globals import PINTEREST_ACCESS_TOKEN
+from .globals import PINTEREST_ACCESS_TOKEN, CONFIG
+from .utils import clean_site_url_for_display
+
 
 API_BASE = "https://api.pinterest.com/v5"
+SITE_URL = os.getenv("SITE_URL") or CONFIG.get("site")
+CLEAN_SITE_URL = clean_site_url_for_display(SITE_URL)
 
 
 def search_boards(query, limit=5):
@@ -69,10 +74,10 @@ def save_pin_to_board(
         payload = {
             "board_id": board_id,
             "media_source": {"source_type": "image_url", "url": image_url},
-            "title": title or "TE title for board",
-            "alt_text": title or "TE image for board",
-            "description": description or "TE description for board",
-            "link": link or "",
+            "title": title or CLEAN_SITE_URL,
+            "alt_text": title or CLEAN_SITE_URL + "image",
+            "description": description or "View more on " + CLEAN_SITE_URL,
+            "link": link or SITE_URL,
         }
 
     headers = {

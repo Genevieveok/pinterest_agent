@@ -148,7 +148,7 @@ def run_new_pins():
             image_url=public_url,
             title=meta.get("title"),
             description=meta.get("description"),
-            link=meta.get("url"),
+            link=SITE_URL,
         )
         if not res:
             continue
