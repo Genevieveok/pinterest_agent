@@ -75,7 +75,7 @@ def save_pin_to_board(
             "board_id": board_id,
             "media_source": {"source_type": "image_url", "url": image_url},
             "title": title or CLEAN_SITE_URL,
-            "alt_text": title or CLEAN_SITE_URL + "image",
+            "alt_text": title or CLEAN_SITE_URL + " image",
             "description": description or "View more on " + CLEAN_SITE_URL,
             "link": link or SITE_URL,
         }
