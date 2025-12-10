@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import os, yaml, random, time, logging
+import threading
 from .config_loader import load_yaml_with_env
 from .db import init_db, get_conn
 from .repin_engine import repin_for_board
@@ -21,6 +22,8 @@ IMAGE_HOST_BRANCH = (
     os.getenv("IMAGE_HOST_BRANCH") or CONFIG.get("image_host_branch") or "gh-pages"
 )
 SITE_URL = os.getenv("SITE_URL") or CONFIG.get("site")
+repinned_results = []
+created_results = []
 
 
 def safe_run_with_retries(func, attempts=3, delay=5, *args, **kwargs):
@@ -157,6 +160,16 @@ def run_new_pins():
     return created_new
 
 
+def run_repins_threaded():
+    global repinned_results
+    repinned_results = run_repins()
+
+
+def run_new_pins_threaded():
+    global created_results
+    created_results = run_new_pins()
+
+
 def main():
     logger.info("Starting Pinterest Agent")
     init_db()
@@ -167,13 +180,27 @@ def main():
         logger.info("Token fetched successfully.")
     except Exception as e:
         logger.error("Failed to fetch/refresh Pinterest token: %s. Exiting.", e)
-        # Exit if we can't get a token, as the rest of the agent won't work.
         return
 
-    # repinned = run_repins()
-    created = run_new_pins()
-    # logger.info("Done. Repinned: %s New pins: %s", len(repinned), len(created))
-    logger.info("Done. New pins: %s", len(created))
+    logger.info("Starting repinning and new pin creation in parallel threads.")
+
+    # Create thread objects
+    repin_thread = threading.Thread(target=run_repins_threaded)
+    new_pin_thread = threading.Thread(target=run_new_pins_threaded)
+
+    # Start threads
+    repin_thread.start()
+    new_pin_thread.start()
+
+    # Wait for both threads to complete
+    # This ensures main() doesn't exit until both repinning and new pin creation are done.
+    repin_thread.join()
+    new_pin_thread.join()
+
+    # Use the results captured globally
+    logger.info(
+        "Done. Repinned: %s New pins: %s", len(repinned_results), len(created_results)
+    )
 
 
 if __name__ == "__main__":

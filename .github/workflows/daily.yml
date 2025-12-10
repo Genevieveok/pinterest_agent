@@ -32,7 +32,6 @@ jobs:
           REPLICATE_API_TOKEN: ${{ secrets.REPLICATE_API_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
-          SITE_URL: ${{ secrets.SITE_URL }}
           IMAGE_HOST_BRANCH: ${{ secrets.IMAGE_HOST_BRANCH }}
 
           SITE_URL: ${{ secrets.SITE_URL }}

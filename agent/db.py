@@ -49,26 +49,44 @@ def init_db():
     conn.close()
 
 
-def clear_search_history():
-    """Deletes all records from the searched_boards table."""
+def clear_all_history():
+    """Deletes all records from the tracking tables."""
     conn = get_conn()
     cur = conn.cursor()
 
-    cur.execute("DELETE FROM searched_boards")
+    # Clear the table that tracks saved pins
+    cur.execute("DELETE FROM pinned")
+    deleted_pins = cur.rowcount
 
-    deleted_count = cur.rowcount
+    # Clear the table that tracks blog pins
+    cur.execute("DELETE FROM blog_pins")
+    deleted_blog_pins = cur.rowcount
+
+    # Clear the table that tracks searched boards
+    cur.execute("DELETE FROM searched_boards")
+    deleted_boards = cur.rowcount
+
     conn.commit()
     conn.close()
 
-    return deleted_count
+    return {
+        "pinned": deleted_pins,
+        "blog_pins": deleted_blog_pins,
+        "searched_boards": deleted_boards,
+    }
 
 
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "clear":
-        print("🚨 Clearing search history database...")
+        print(
+            "🚨 Clearing ALL history database tables (pinned, blog_pins, searched_boards)..."
+        )
         try:
-            count = clear_search_history()
-            print(f"✅ Successfully deleted {count} entries from searched_boards.")
+            counts = clear_all_history()
+            print(f"✅ Successfully deleted:")
+            print(f"   - {counts['pinned']} entries from 'pinned'.")
+            print(f"   - {counts['blog_pins']} entries from 'blog_pins'.")
+            print(f"   - {counts['searched_boards']} entries from 'searched_boards'.")
         except Exception as e:
             print(f"❌ Failed to clear database: {e}")
     else:

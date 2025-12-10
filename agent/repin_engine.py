@@ -49,8 +49,6 @@ def repin_for_board(board_key, board_cfg, quota, filters, sleep_fn):
         logger.info("Attempt %s: Searching boards for keyword: %s", attempts, q)
 
         # Search for relevant SOURCE boards
-        # Note: This currently only returns the authorized user's boards (API v5 limitation).
-        # TODO: Refactor discovery to pull random, external pins from the explore feed.
         try:
             source_boards = search_boards(q, limit=5)
         except Exception as e:
@@ -107,20 +105,31 @@ def repin_for_board(board_key, board_cfg, quota, filters, sleep_fn):
         candidates = pick_quality_pins(items, min_saves=filters.get("min_saves", 5))
         random.shuffle(candidates)
 
-        # Attempt to repin candidates
+        # Filter out already pinned items and Idea Pins
+        filtered_candidates = []
         for c in candidates:
             pin_id = c.get("id")
             if not pin_id:
                 continue
 
-            if c.get("creative_type") == "IDEA":
-                logger.debug("Skipping Pin %s: It is an Idea Pin.", pin_id)
-                continue
-
+            # Check if this Pin ID is already in our 'pinned' table
             cur.execute("SELECT 1 FROM pinned WHERE pinterest_pin_id = ?", (pin_id,))
             if cur.fetchone():
                 logger.debug("Pin %s already repinned, skipping.", pin_id)
                 continue
+
+            # Skip Idea Pins
+            if c.get("creative_type") == "IDEA":
+                logger.debug("Skipping Pin %s: It is an Idea Pin.", pin_id)
+                continue
+
+            filtered_candidates.append(c)
+
+        candidates = filtered_candidates
+
+        # Attempt to repin candidates
+        for c in candidates:
+            pin_id = c.get("id")
 
             try:
                 save_pin_to_board(board_cfg["id"], pin_id=pin_id)

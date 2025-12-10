@@ -56,28 +56,33 @@ def save_pin_to_board(
 ):
     if not PINTEREST_ACCESS_TOKEN.access_token:
         raise RuntimeError("PINTEREST_ACCESS_TOKEN not set")
-    url = f"{API_BASE}/pins"
-    payload = {"board_id": board_id}
+
     if pin_id:
-        payload["existing_pin_id"] = pin_id
+        url = f"{API_BASE}/pins/{pin_id}/save"
+        payload = {"board_id": board_id}
+
     else:
+        url = f"{API_BASE}/pins"
+
         if not image_url or not board_id:
             raise ValueError("Pin creation requires image_url and board_id.")
 
-        payload["media_source"] = {"source_type": "image_url", "url": image_url}
-
-        payload["title"] = title or "TE title for board"
-        payload["alt_text"] = title or "TE image for board"
-        payload["description"] = description or "TE description for board"
-        payload["link"] = link or ""
+        payload = {
+            "board_id": board_id,
+            "media_source": {"source_type": "image_url", "url": image_url},
+            "title": title or "TE title for board",
+            "alt_text": title or "TE image for board",
+            "description": description or "TE description for board",
+            "link": link or "",
+        }
 
     headers = {
         "Authorization": f"Bearer {PINTEREST_ACCESS_TOKEN.access_token}",
         "Content-Type": "application/json",
     }
 
+    print(f"URL: {url}")
     print(f"PAYLOAD: {payload}")
-    print(url, headers)
 
     r = requests.post(url, json=payload, headers=headers, timeout=30)
     r.raise_for_status()
