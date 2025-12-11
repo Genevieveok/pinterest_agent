@@ -2,17 +2,24 @@ import random, time, math
 
 
 def human_sleep_between_pins(pin_index, total_pins=7):
+    """
+    Sleeps for a random, progressively longer duration to mimic human activity
+    and stay within the 6-hour GitHub Actions limit (max total sleep ~5.4 hours for 10 pins).
+    """
     base_windows = [
-        (0, 300),  # 0-5 min
+        (0, 240),  # 0-4 min
+        (300, 1200),  # 5-20 min
         (600, 1800),  # 10-30 min
         (900, 2700),  # 15-45 min
-        (1800, 3600),  # 30-60 min
+        (600, 1800),  # 10-30 min
         (900, 2400),  # 15-40 min
         (1200, 3000),  # 20-50 min
-        (1500, 3600),  # 25-60 min
     ]
+
+    # Use the last window for any index exceeding the list length (pins > 7)
     idx = min(pin_index, len(base_windows) - 1)
     low, high = base_windows[idx]
+
     s = random.uniform(low, high)
     time.sleep(s)
     return s
