@@ -6,6 +6,7 @@ from .db import init_db, get_conn
 from .repin_engine import repin_for_board
 from .blog_scraper import fetch_sitemap_posts, extract_post_meta
 from .generator import build_aesthetic_image, upload_image_to_github
+from .pinterest_api import save_pin_to_board
 from .utils import (
     human_sleep_between_pins,
     short_random_sleep,
@@ -74,22 +75,33 @@ def run_new_pins():
     new_needed = CONFIG["daily_pins"]["new_pins"]
     posts = fetch_sitemap_posts(SITE_URL, limit=200)
     random.shuffle(posts)
-    conn = get_conn()
-    cur = conn.cursor()
+
     created_new = []
+
     for idx, p in enumerate(posts):
         if len(created_new) >= new_needed:
             break
-        cur.execute("SELECT 1 FROM blog_pins WHERE post_url = ?", (p,))
-        if cur.fetchone():
+
+        # Database Check for Existing Pin
+        # Open connection only for this quick read
+        conn_check = get_conn()
+        cur_check = conn_check.cursor()
+        cur_check.execute("SELECT 1 FROM blog_pins WHERE post_url = ?", (p,))
+        pin_exists = cur_check.fetchone()
+        conn_check.close()
+
+        if pin_exists:
             continue
+
         meta = safe_run_with_retries(extract_post_meta, attempts=2, delay=2, post_url=p)
         if not meta:
             continue
+
         matched_board_key = None
         for bk, bcfg in BOARDS.items():
             for k in bcfg.get("keywords", []):
-                if k.lower() in " ".join(meta.get("keywords", [])):
+                # Ensure checking against a sequence (keywords is list/tuple)
+                if k.lower() in [kw.lower() for kw in meta.get("keywords", [])]:
                     matched_board_key = bk
                     break
             if matched_board_key:
@@ -102,6 +114,7 @@ def run_new_pins():
         if not title_for_image:
             title_for_image = f"More on {CLEAN_SITE_URL}"
 
+        # Image Generation and Upload
         use_ai = CONFIG.get("use_ai_generation", True) and bool(REPLICATE_TOKEN)
         local_img = None
         if use_ai:
@@ -122,6 +135,7 @@ def run_new_pins():
             )
         if not local_img:
             continue
+
         public_url = None
         try:
             public_url = upload_image_to_github(
@@ -138,7 +152,6 @@ def run_new_pins():
         if not public_url:
             logger.info("No public image available for %s, skipping", p)
             continue
-        from .pinterest_api import save_pin_to_board
 
         res = safe_run_with_retries(
             save_pin_to_board,
@@ -152,20 +165,28 @@ def run_new_pins():
         )
         if not res:
             continue
+
         pin_id = res.get("id")
         if pin_id:
-            cur.execute(
+            # Database Write
+            # Open new connection only for the write/commit
+            conn_write = get_conn()
+            cur_write = conn_write.cursor()
+            cur_write.execute(
                 "INSERT OR IGNORE INTO blog_pins (post_url, pinterest_pin_id) VALUES (?, ?)",
                 (p, pin_id),
             )
-            conn.commit()
+            conn_write.commit()
+            conn_write.close()
+
             created_new.append(pin_id)
+
         human_sleep_between_pins(
             idx + CONFIG["daily_pins"]["repins"],
             total_pins=CONFIG["daily_pins"]["repins"]
             + CONFIG["daily_pins"]["new_pins"],
         )
-    conn.close()
+
     return created_new
 
 
